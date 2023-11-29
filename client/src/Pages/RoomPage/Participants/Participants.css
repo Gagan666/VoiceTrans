@@ -1,0 +1,33 @@
+.header-txt {
+  font-family: "Roboto";
+  color: white;
+}
+.head {
+  padding-left: 10px;
+}
+.pat-container {
+  height: 100vh;
+  width: 20%;
+}
+.pat {
+  padding-top: 10px;
+  padding-bottom: 10px;
+  padding-left: 10px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  /* justify-content: space-evenly; */
+}
+.pat-icon {
+  font-family: "Roboto";
+  font-weight: 600;
+  padding: 5px 9px;
+  background-color: #fff;
+  border-radius: 9999px;
+}
+.pat-text {
+  color: #fff;
+  font-family: "Roboto";
+  font-size: small;
+}
