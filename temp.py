@@ -14,8 +14,8 @@ class Models:
         translated = GoogleTranslator(source=from_lan, target=to_lan).translate(result["text"])
         tts = gTTS(translated, lang=to_lan)
         tts.save(file_name)
-        print(result["text"] + "\n" + translated)
+        print(result["text"] + "\t" + translated)
 
 # Example usage:
-# models_instance = Models()
-# models_instance.convert("en", "fr", "example_file.wav")
+models_instance = Models()
+models_instance.convert("en", "hi", "123.mp3")

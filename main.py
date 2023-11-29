@@ -14,7 +14,7 @@ from deep_translator import GoogleTranslator
 from gtts import gTTS
 
 class Models:
-    def __init__(self, model_name="base"):
+    def __init__(self, model_name="medium"):
         self.model = whisper.load_model(model_name)
 
     def convert(self, from_lan, to_lan, file_name):
@@ -29,7 +29,7 @@ class Models:
 model = Models()
 
 
-
+room_users  ={}
 
 @app.route('/')
 def index():
@@ -40,7 +40,11 @@ def index():
 def handle_join(data):
     room = data['room']
     join_room(room)
-    emit('message', f'User {data["username"]} has joined the room.', room=room)
+    if room in room_users:
+        room_users[room].append(data['username'])
+    else:
+        room_users[room] = [data['username']]
+    emit('user-joined',{'username':data['username'],'users':room_users[room]}, room=room)
 
 
 
@@ -50,7 +54,13 @@ def handle_join(data):
 def handle_leave(data):
     room = data['room']
     leave_room(room)
-    emit('message', f'User {data["username"]} has left the room.', room=room)
+    print(data)
+    if room in room_users:
+        if data['username'] in room_users[room]:
+            room_users[room].remove(data['username'])
+            if not room_users[room]:
+                del room_users[room]
+    emit('user-left', {'username':data['username'],'users':room_users[room]}, room=room)
 
 @socketio.on('voice_message')
 def handle_voice_message(data):
