@@ -5,6 +5,8 @@ from flask_socketio import SocketIO, join_room, leave_room, emit
 from pydub import AudioSegment
 import base64
 import io, time
+from io import BytesIO
+
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins='*')
 
@@ -66,18 +68,34 @@ def handle_leave(data):
 def handle_voice_message(data):
     room = data['room']
     audio_blob = data['audioBlob']
-    print(room)
+    language = data['language']
+    print(data)
     # Save the audio blob or handle it as needed
     # For simplicity, let's save it to a file
 
     filename = f"xx/audio_{time.mktime(time.localtime())}.mp3"
 
     with open(filename, 'wb') as audio_file:
-        audio_file.write(base64.b64decode(audio_blob))
-    model.convert(from_lan="en", to_lan="hi", file_name=filename)
+        audio_file.write(audio_blob)
+
+    if(language=='en'):
+        model.convert(from_lan="en", to_lan="hi", file_name=filename)
+        with open(filename, 'rb') as mp3_file:
+            mp3_data = mp3_file.read()
+            mp3_bytes_io = BytesIO(mp3_data)
+            byte_array = bytearray(mp3_bytes_io.getvalue())
+        emit('voice_message', {'username': data['username'],'en': audio_blob,'hi':list(byte_array)}, room=room)
+    else:
+        model.convert(from_lan="hi", to_lan="en", file_name=filename)
+        with open(filename, 'rb') as mp3_file:
+            mp3_data = mp3_file.read()
+            mp3_bytes_io = BytesIO(mp3_data)
+            byte_array = bytearray(mp3_bytes_io.getvalue())
+        emit('voice_message', {'username': data['username'],'hi': audio_blob,'en':list(byte_array)}, room=room)
+    
 
     # Broadcast the message to all clients in the room
-    emit('voice_message', {'username': data['username'], 'audioUrl': filename}, room=room)
+    
 
 @app.route('/<path:filename>')
 def serve_audio(filename):

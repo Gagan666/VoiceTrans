@@ -11,6 +11,7 @@ import { useSnackbar } from "notistack";
 const RoomPage = () => {
   const { room } = useParams();
   const [username, setUsername] = useState("");
+  const [language, setLanguage] = useState("");
   const [messages, setMessages] = useState([]);
   const [socket, setSocket] = useState(null);
   const [participants, setParticipants] = useState([]);
@@ -28,19 +29,25 @@ const RoomPage = () => {
   const addAudioElement = (blob) => {
     // const url = URL.createObjectURL(blob);
     // Assuming you have a Blob named 'myBlob'
-    blobToBase64(blob)
-      .then((base64String) => {
-        // Now 'base64String' contains the base64-encoded representation of the Blob
-        socket.emit("voice_message", {
-          username,
-          room,
-          audioBlob: base64String,
-        });
-        // Send 'base64String' to the server or wherever you need it
-      })
-      .catch((error) => {
-        console.error(error);
-      });
+    // blobToBase64(blob)
+    //   .then((base64String) => {
+    // Now 'base64String' contains the base64-encoded representation of the Blob
+    console.log(blob);
+    setMessages((prevMessages) => [
+      ...prevMessages,
+      { username: username, audioUrl: URL.createObjectURL(blob) },
+    ]);
+    socket.emit("voice_message", {
+      username,
+      room,
+      language,
+      audioBlob: blob,
+    });
+    // Send 'base64String' to the server or wherever you need it
+    // })
+    // .catch((error) => {
+    //   console.error(error);
+    // });
 
     // const audio = document.createElement('audio');
     // audio.src = url;
@@ -71,39 +78,73 @@ const RoomPage = () => {
     const usernameParam = new URLSearchParams(window.location.search).get(
       "username"
     );
+    const languageParam = new URLSearchParams(window.location.search).get(
+      "language"
+    );
 
-    if (!usernameParam) {
+    if (!usernameParam || !languageParam) {
       // If username is not provided, navigate back to home
       navigate("/");
       return;
     }
 
     setUsername(usernameParam);
-
+    setLanguage(languageParam);
     const newSocket = io.connect("http://localhost:5000");
 
-    newSocket.emit("join", { username: usernameParam, room });
+    newSocket.emit("join", {
+      username: usernameParam,
+      room,
+      // language: languageParam,
+    });
 
     setSocket(newSocket);
 
     window.addEventListener("beforeunload", () => {
-      newSocket.emit("leave", { username: usernameParam, room });
+      newSocket.emit("leave", {
+        username: usernameParam,
+        room,
+        // language: languageParam,
+      });
       newSocket.disconnect();
     });
 
     return () => {
       window.removeEventListener("beforeunload", () => {
-        newSocket.emit("leave", { username: usernameParam, room });
+        newSocket.emit("leave", {
+          username: usernameParam,
+          room,
+          // language: languageParam,
+        });
         newSocket.disconnect();
       });
-      newSocket.emit("leave", { username: usernameParam, room });
+      newSocket.emit("leave", {
+        username: usernameParam,
+        room,
+        // language: languageParam,
+      });
       newSocket.disconnect();
     };
   }, [room, navigate]);
 
   const handleIncomingMessage = (message) => {
-    console.log("Received voice message:", message);
-    setMessages((prevMessages) => [...prevMessages, message]);
+    console.log("Received voice message:", message[language]);
+    if (message.username === username) {
+      return;
+    }
+    let a = message[language];
+    if (!(a instanceof ArrayBuffer)) {
+      a = new Uint8Array(a);
+    }
+    const blob = new Blob([a], { type: "audio/mp3" });
+
+    setMessages((prevMessages) => [
+      ...prevMessages,
+      {
+        ...message,
+        audioUrl: URL.createObjectURL(blob),
+      },
+    ]);
   };
 
   const handleUserJoined = ({ username, users }) => {
@@ -113,8 +154,8 @@ const RoomPage = () => {
   };
 
   const handleCallEnd = () => {
-    navigate("/");
     socket.emit("leave", { username: username, room });
+    navigate("/");
   };
 
   const handleUserLeft = ({ username, users }) => {
@@ -143,9 +184,9 @@ const RoomPage = () => {
           <div className="header">
             <p className="title">Room : {room}</p>
           </div>
-          <div className="section">
-            <MessageList username={username} messages={messages} />
-          </div>
+          {/* <div className="section"> */}
+          <MessageList username={username} messages={messages} />
+          {/* </div> */}
           <div className="btn-container">
             {participants.length > 1 ? (
               <>
@@ -156,13 +197,13 @@ const RoomPage = () => {
                   // downloadFileExtension="mp3"
                   showVisualizer={true}
                 />
-                <button className="call-end-btn" onClick={handleCallEnd}>
-                  <CallEndIcon sx={{ color: "white" }} />
-                </button>
               </>
             ) : (
               <div className="title">Waiting for Users to Join...</div>
             )}
+            <button className="call-end-btn" onClick={handleCallEnd}>
+              <CallEndIcon sx={{ color: "white" }} />
+            </button>
           </div>
         </div>
         <Participants participants={participants} />

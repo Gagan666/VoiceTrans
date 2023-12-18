@@ -10,7 +10,8 @@ const Message = ({ message, username }) => {
     >
       <audio controls>
         <source
-          src={`http://localhost:5000/${message.audioUrl}`}
+          // src={`http://localhost:5000/${message.audioUrl}`}
+          src={message.audioUrl}
           type="audio/mp3"
         />
         Your browser does not support the audio element.
